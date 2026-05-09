@@ -2,9 +2,10 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
+
 import { useFonts } from 'expo-font';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LiveSpotScreen from './src/screens/LiveSpotScreen';
@@ -48,7 +49,7 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <StatusBar style="dark" />
-        <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false, animation: 'ios' }}>
+        <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
           <Stack.Screen name="Welcome"  component={wrap(WelcomeScreen)} />
           <Stack.Screen name="LiveSpot" component={wrap(LiveSpotScreen)} />
           <Stack.Screen name="Host"     component={wrap(HostScreen)} />
