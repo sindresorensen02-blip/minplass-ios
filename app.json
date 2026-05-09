@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "MinPlass",
+    "slug": "minplass",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F4F3F2"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "eu.minplass.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F4F3F2"
+      },
+      "package": "eu.minplass.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
