@@ -19,7 +19,7 @@ export default function BottomNav({ activeTab = 'home', onTabPress }) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 8 }]}>
+    <View style={[styles.container, { bottom: insets.bottom + 8 }]}>
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(30,35,38,0.92)' }]} />
       <View style={styles.inner}>
         {TABS.map((tab) => {
@@ -53,7 +53,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 0,
     borderRadius: 999,
     overflow: 'hidden',
     borderWidth: 0.5,
