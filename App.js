@@ -33,10 +33,7 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <StatusBar style="dark" />
-        <Stack.Navigator
-          initialRouteName="Welcome"
-          screenOptions={{ headerShown: false, animation: 'ios' }}
-        >
+        <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false, animation: 'ios' }}>
           <Stack.Screen name="Welcome"  component={WelcomeScreen} />
           <Stack.Screen name="LiveSpot" component={LiveSpotScreen} />
           <Stack.Screen name="Host"     component={HostScreen} />

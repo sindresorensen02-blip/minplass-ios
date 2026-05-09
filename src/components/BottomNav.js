@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, shadow } from '../theme';
 import Icon from './Icon';
@@ -20,7 +20,7 @@ export default function BottomNav({ activeTab = 'home', onTabPress }) {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 8 }]}>
-      <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(30,35,38,0.92)' }]} />
       <View style={styles.inner}>
         {TABS.map((tab) => {
           const active = tab.id === activeTab;

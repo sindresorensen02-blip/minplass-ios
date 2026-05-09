@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, TextInput,
   StyleSheet, Pressable,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radii, spacing, shadow, typography } from '../theme';
 import Icon from './Icon';
@@ -13,7 +13,7 @@ export function GlassCard({ children, style, padding = 20, radius = radii.card, 
   const intensity = strong ? 60 : 40;
   return (
     <Pressable onPress={onPress} style={[styles.glassWrap, { borderRadius: radius }, style]}>
-      <BlurView intensity={intensity} tint="light" style={[StyleSheet.absoluteFillObject, { borderRadius: radius }]} />
+      <View style={[StyleSheet.absoluteFillObject, { borderRadius: radius, backgroundColor: 'rgba(255,255,255,0.72)' }]} />
       <View style={[styles.glassInner, { padding, borderRadius: radius }]}>
         {children}
       </View>
@@ -49,7 +49,7 @@ export function PrimaryButton({ children, onPress, full = false, icon, style, di
 export function GlassButton({ children, onPress, style, icon }) {
   return (
     <Pressable onPress={onPress} style={[styles.glassBtn, style]}>
-      <BlurView intensity={30} tint="light" style={[StyleSheet.absoluteFillObject, { borderRadius: radii.pill }]} />
+      <View style={[StyleSheet.absoluteFillObject, { borderRadius: radii.pill, backgroundColor: 'rgba(255,255,255,0.72)' }]} />
       <View style={styles.glassBtnInner}>
         {icon}
         <Text style={styles.glassBtnText}>{children}</Text>
@@ -84,7 +84,7 @@ export function IconButton({ children, onPress, size = 44, dark = false, style }
       ]}
     >
       {!dark && (
-        <BlurView intensity={30} tint="light" style={[StyleSheet.absoluteFillObject, { borderRadius: size / 2 }]} />
+        <View style={[StyleSheet.absoluteFillObject, { borderRadius: size / 2, backgroundColor: 'rgba(255,255,255,0.72)' }]} />
       )}
       <View style={styles.iconBtnInner}>{children}</View>
     </Pressable>
@@ -96,7 +96,7 @@ export function FilterPill({ children, active = false, onPress, icon, style }) {
   return (
     <Pressable onPress={onPress} style={[styles.filterPill, active ? styles.filterPillActive : styles.filterPillInactive, style]}>
       {!active && (
-        <BlurView intensity={25} tint="light" style={[StyleSheet.absoluteFillObject, { borderRadius: radii.pill }]} />
+        <View style={[StyleSheet.absoluteFillObject, { borderRadius: radii.pill, backgroundColor: 'rgba(255,255,255,0.72)' }]} />
       )}
       <View style={styles.filterPillInner}>
         {icon}
@@ -110,7 +110,7 @@ export function FilterPill({ children, active = false, onPress, icon, style }) {
 export function SearchBar({ value = '', placeholder = 'Hvor skal du?', onChangeText, voice = true, style }) {
   return (
     <Pressable style={[styles.searchBar, style]}>
-      <BlurView intensity={30} tint="light" style={[StyleSheet.absoluteFillObject, { borderRadius: radii.pill }]} />
+      <View style={[StyleSheet.absoluteFillObject, { borderRadius: radii.pill, backgroundColor: 'rgba(255,255,255,0.72)' }]} />
       <View style={styles.searchBarInner}>
         <Icon name="search" size={20} color={colors.fg3} />
         <TextInput
