@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
+import { useAuth } from '../context/AuthContext';
 
 const STATS = [
   { value: '12',  label: 'Reservasjoner' },
@@ -38,6 +39,7 @@ const SECTIONS = [
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
 
   return (
     <View style={styles.root}>
@@ -108,7 +110,7 @@ export default function ProfileScreen({ navigation }) {
         ))}
 
         {/* Log out */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.85} onPress={signOut}>
           <Text style={styles.logoutText}>Logg ut</Text>
         </TouchableOpacity>
 

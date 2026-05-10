@@ -25,7 +25,8 @@ import KartScreen from './src/screens/KartScreen';
 import LagretScreen from './src/screens/LagretScreen';
 import BottomNav from './src/components/BottomNav';
 import { SpotsProvider } from './src/context/SpotsContext';
-import { AuthProvider } from './src/context/AuthContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import AuthScreen from './src/screens/AuthScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -126,6 +127,36 @@ function CustomTabBar({ state, navigation }) {
   );
 }
 
+function RootNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <View style={{ flex: 1, backgroundColor: '#F4F3F2', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#4EA7B9" /></View>;
+  }
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  return (
+    <SpotsProvider>
+      <NavigationContainer>
+        <StatusBar style="dark" />
+        <Tab.Navigator
+          tabBar={(props) => <CustomTabBar {...props} />}
+          screenOptions={{ headerShown: false }}
+          backBehavior="initialRoute"
+        >
+          <Tab.Screen name="Hjem"   component={HjemStack} />
+          <Tab.Screen name="Kart"   component={WWrappedKart} />
+          <Tab.Screen name="Lagret" component={WWrappedLagret} />
+          <Tab.Screen name="Profil" component={ProfilStack} />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </SpotsProvider>
+  );
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Inter_400Regular: require('./assets/fonts/Inter_400Regular.ttf'),
@@ -142,21 +173,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-      <SpotsProvider>
-      <NavigationContainer>
-        <StatusBar style="dark" />
-        <Tab.Navigator
-          tabBar={(props) => <CustomTabBar {...props} />}
-          screenOptions={{ headerShown: false }}
-          backBehavior="initialRoute"
-        >
-          <Tab.Screen name="Hjem"   component={HjemStack} />
-          <Tab.Screen name="Kart"   component={WWrappedKart} />
-          <Tab.Screen name="Lagret" component={WWrappedLagret} />
-          <Tab.Screen name="Profil" component={ProfilStack} />
-        </Tab.Navigator>
-      </NavigationContainer>
-      </SpotsProvider>
+        <RootNavigator />
       </AuthProvider>
     </SafeAreaProvider>
   );
