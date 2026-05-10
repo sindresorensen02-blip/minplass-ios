@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, ScrollView,
-  Platform, ActivityIndicator,
+  Platform, ActivityIndicator, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,9 +53,7 @@ export default function AuthScreen() {
         >
           {/* Logo */}
           <View style={styles.logoRow}>
-            <LinearGradient colors={['#DCEBDF', '#9ECFE3']} style={styles.logoGradient}>
-              <Text style={styles.logoText}>M</Text>
-            </LinearGradient>
+            <Image source={require('../../assets/icon.png')} style={styles.logoImage} />
             <Text style={styles.brandName}>MinPlass</Text>
           </View>
 
@@ -197,8 +195,7 @@ const styles = StyleSheet.create({
   blob3: { width: 200, height: 200, backgroundColor: '#9FD6B4', top: '40%', right: -60, opacity: 0.18 },
 
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 32 },
-  logoGradient: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  logoText: { fontFamily: 'Inter_800ExtraBold', fontSize: 22, color: '#111416' },
+  logoImage: { width: 44, height: 44, borderRadius: 12 },
   brandName: { fontFamily: 'Inter_800ExtraBold', fontSize: 24, color: '#111416', letterSpacing: -0.48 },
 
   card: { backgroundColor: 'rgba(255,255,255,0.78)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)', borderRadius: 28, padding: 22, shadowColor: '#111416', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.1, shadowRadius: 32, elevation: 8 },
