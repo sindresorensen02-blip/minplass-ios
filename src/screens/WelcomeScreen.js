@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
-import BottomNav from '../components/BottomNav';
 
 const SPOTS = [
   { id: 'strand',   address: 'Strandgaten 12',   area: 'Møhlenpris', distance: '0,4 km', walk: '5 min',  price: 45, until: 'Ledig til 18:00', tags: ['Tak over', 'Elbil 11kW'], featured: true },
@@ -21,7 +20,12 @@ const FILTERS = [
 export default function WelcomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState('now');
-  const [activeTab, setActiveTab] = useState('home');
+
+  useEffect(() => {
+    return navigation.getParent()?.addListener('tabPress', () => {
+      navigation.popToTop();
+    });
+  }, [navigation]);
 
   return (
     <View style={styles.root}>
@@ -36,15 +40,14 @@ export default function WelcomeScreen({ navigation }) {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Image source={require('../../assets/icon.png')} style={styles.logo} />
-            <View>
-              <Text style={styles.greeting}>Hei Ellen</Text>
+            <View style={styles.headerText}>
+              <Text style={styles.greeting}>Hei Julia</Text>
               <Text style={styles.headerTitle}>Finn en plass</Text>
             </View>
           </View>
-          <View style={styles.avatarWrap}>
-            <LinearGradient colors={['#DCEBDF', '#9ECFE3']} style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]} />
-            <Text style={styles.avatarText}>EH</Text>
-          </View>
+          <TouchableOpacity style={styles.bellBtn}>
+            <Icon name="bell" size={18} color="#111416" />
+          </TouchableOpacity>
         </View>
 
         {/* Search bar */}
@@ -89,7 +92,6 @@ export default function WelcomeScreen({ navigation }) {
         </TouchableOpacity>
       </ScrollView>
 
-      <BottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </View>
   );
 }
@@ -137,7 +139,7 @@ function SpotCard({ spot, onPress }) {
               ) : (
                 <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#111416', borderRadius: 16 }]} />
               )}
-              <Icon name="arrow-right" size={14} color="#fff" />
+              <Icon name="arrow-right" size={14} color="#fff" strokeWidth={2.5} />
             </View>
           </View>
         </View>
@@ -152,12 +154,12 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20 },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logo: { width: 36, height: 36, borderRadius: 8 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  headerText: { flex: 1 },
+  logo: { width: 90, height: 90, borderRadius: 20, marginLeft: -16 },
+  bellBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center' },
   greeting: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: '#7B8589', letterSpacing: 0.8, textTransform: 'uppercase' },
   headerTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, color: '#111416', letterSpacing: -0.36 },
-  avatarWrap: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.8)' },
-  avatarText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#111416', zIndex: 1 },
 
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 12,

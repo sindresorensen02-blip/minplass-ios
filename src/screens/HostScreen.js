@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
-import BottomNav from '../components/BottomNav';
+import { useSpots } from '../context/SpotsContext';
 
 const PERIODS = [
   { id: 'week',  label: 'Uke',   heading: 'denne uken',    value: '1 240', total: '4 820 kr / måned' },
@@ -14,16 +14,17 @@ const PERIODS = [
 const BARS = [36, 48, 22, 60, 44, 86, 52];
 const BAR_DAYS = ['M', 'T', 'O', 'T', 'F', 'L', 'S'];
 
-const SPOTS = [
-  { id: 'innk',    title: 'Innkjørsel · Møhlenpris', sub: 'Aktiv · 8 reservasjoner', price: '45', active: true },
-  { id: 'garasje', title: 'Garasje · Sandviken',     sub: 'Pause · gjenoppta',       price: '75', active: false },
-];
-
 export default function HostScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [period, setPeriod] = useState('week');
-  const [activeTab, setActiveTab] = useState('profile');
   const cur = PERIODS.find(p => p.id === period);
+  const { spots: SPOTS } = useSpots();
+
+  useEffect(() => {
+    return navigation.getParent()?.addListener('tabPress', () => {
+      navigation.popToTop();
+    });
+  }, [navigation]);
 
   return (
     <View style={styles.root}>
@@ -35,12 +36,9 @@ export default function HostScreen({ navigation }) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-            <Icon name="arrow-left" size={20} color="#111416" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Utleier</Text>
-          <TouchableOpacity style={styles.iconBtn}>
-            <Icon name="bell" size={18} color="#111416" />
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.avatarWrap} activeOpacity={0.85}>
+            <LinearGradient colors={['#DCEBDF', '#9ECFE3']} style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]} />
+            <Text style={styles.avatarText}>JM</Text>
           </TouchableOpacity>
         </View>
 
@@ -89,7 +87,7 @@ export default function HostScreen({ navigation }) {
 
         {/* Spot rows */}
         {SPOTS.map((spot) => (
-          <TouchableOpacity key={spot.id} style={styles.spotRow} activeOpacity={0.85}>
+          <TouchableOpacity key={spot.id} style={styles.spotRow} activeOpacity={0.85} onPress={() => navigation.navigate('RedigerPlass', { spot })}>
             <View style={[styles.spotDot, { backgroundColor: spot.active ? 'rgba(159,214,180,0.3)' : 'rgba(17,20,22,0.07)' }]}>
               <View style={[styles.spotDotInner, { backgroundColor: spot.active ? '#3FA66B' : '#7B8589' }]} />
             </View>
@@ -103,12 +101,10 @@ export default function HostScreen({ navigation }) {
         ))}
 
         {/* CTA */}
-        <TouchableOpacity style={styles.cta} activeOpacity={0.85} onPress={() => navigation.navigate('Welcome')}>
-          <Text style={styles.ctaText}>Lei ut en plass til</Text>
+        <TouchableOpacity style={styles.cta} activeOpacity={0.85} onPress={() => navigation.navigate('LeiUt', { isFirst: SPOTS.length === 0 })}>
+          <Text style={styles.ctaText}>{SPOTS.length === 0 ? 'Lei ut en plass' : 'Lei ut en plass til'}</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      <BottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </View>
   );
 }
@@ -117,9 +113,9 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { paddingHorizontal: 20 },
 
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#111416', letterSpacing: -0.13 },
+  header: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'flex-end', marginBottom: 24 },
+  avatarWrap: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.9)' },
+  avatarText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#111416', zIndex: 1 },
 
   earningsSection: { marginBottom: 16 },
   earningsLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: '#7B8589', letterSpacing: 1, textTransform: 'uppercase' },

@@ -39,14 +39,14 @@ const ICONS = {
   ),
   'arrow-right': (c, sw) => (
     <>
-      <Path d="M5 12h14" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
-      <Path d="m12 5 7 7-7 7" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M5 12h14" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="m12 5 7 7-7 7" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round"/>
     </>
   ),
   'arrow-left': (c, sw) => (
     <>
-      <Path d="M19 12H5" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
-      <Path d="m12 19-7-7 7-7" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M19 12H5" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="m12 19-7-7 7-7" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round"/>
     </>
   ),
   clock: (c, sw) => (
@@ -76,8 +76,8 @@ const ICONS = {
   ),
   x: (c, sw) => (
     <>
-      <Path d="M18 6 6 18" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
-      <Path d="m6 6 12 12" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M18 6 6 18" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="m6 6 12 12" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round"/>
     </>
   ),
   zap: (c, sw, fill) => (
@@ -110,7 +110,7 @@ const ICONS = {
     </>
   ),
   'chevron-right': (c, sw) => (
-    <Path d="m9 18 6-6-6-6" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="m9 18 6-6-6-6" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round" />
   ),
   layers: (c, sw) => (
     <>

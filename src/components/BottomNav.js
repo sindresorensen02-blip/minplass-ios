@@ -8,11 +8,10 @@ import { colors, shadow } from '../theme';
 import Icon from './Icon';
 
 const TABS = [
-  { id: 'home',    icon: 'home',    label: 'Hjem' },
-  { id: 'search',  icon: 'search',  label: 'Finn' },
-  { id: 'map',     icon: 'map-pin', label: 'Kart' },
-  { id: 'saved',   icon: 'heart',   label: 'Lagret' },
-  { id: 'profile', icon: 'user',    label: 'Profil' },
+  { id: 'Hjem',   icon: 'home',    label: 'Hjem' },
+  { id: 'Kart',   icon: 'map-pin', label: 'Kart' },
+  { id: 'Lagret', icon: 'heart',   label: 'Lagret' },
+  { id: 'Profil', icon: 'user',    label: 'Profil' },
 ];
 
 export default function BottomNav({ activeTab = 'home', onTabPress }) {
