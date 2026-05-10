@@ -25,6 +25,7 @@ import KartScreen from './src/screens/KartScreen';
 import LagretScreen from './src/screens/LagretScreen';
 import BottomNav from './src/components/BottomNav';
 import { SpotsProvider } from './src/context/SpotsContext';
+import { AuthProvider } from './src/context/AuthContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -140,6 +141,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <AuthProvider>
       <SpotsProvider>
       <NavigationContainer>
         <StatusBar style="dark" />
@@ -155,6 +157,7 @@ export default function App() {
         </Tab.Navigator>
       </NavigationContainer>
       </SpotsProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
