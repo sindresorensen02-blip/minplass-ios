@@ -14,7 +14,15 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "eu.minplass.app",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "appleTeamId": "C52D5TBW47",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "MinPlass bruker posisjonen din for å varsle deg når du er nær parkeringsplassen.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "MinPlass bruker posisjonen din i bakgrunnen for å varsle deg automatisk når du er nær parkeringsplassen.",
+        "NSLocationAlwaysUsageDescription": "MinPlass bruker posisjonen din i bakgrunnen for å varsle deg automatisk når du er nær parkeringsplassen.",
+        "UIBackgroundModes": ["location", "fetch"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +36,23 @@
     },
     "plugins": [
       "expo-font",
-      "expo-asset"
-    ]
+      "expo-asset",
+      ["expo-location", {
+        "locationAlwaysAndWhenInUsePermission": "MinPlass bruker posisjonen din for å varsle deg når du er nær parkeringsplassen.",
+        "isIosBackgroundLocationEnabled": true
+      }],
+      ["expo-notifications", {
+        "icon": "./assets/icon.png",
+        "color": "#10B981"
+      }],
+      ["expo-image-picker", {
+        "photosPermission": "MinPlass trenger tilgang til bilder for å la deg sette profilbilde."
+      }]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "323522e3-59d1-4c9f-abd8-cb080411e7ce"
+      }
+    }
   }
 }

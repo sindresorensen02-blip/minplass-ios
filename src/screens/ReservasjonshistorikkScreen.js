@@ -1,35 +1,94 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from '../components/Icon';
+import { supabase } from '../lib/supabase';
+import { notifyUser } from '../lib/notify';
+import { useAuth } from '../context/AuthContext';
 
-const HISTORY = [
-  { id: '1', address: 'Strandgaten 12',  area: 'Møhlenpris', date: '5. mai 2026',    duration: '2 t',   price: 109, status: 'fullfort' },
-  { id: '2', address: 'Nygårdsgaten 8',  area: 'Sentrum',    date: '1. mai 2026',    duration: '1 t',   price: 74,  status: 'fullfort' },
-  { id: '3', address: 'Sandviksveien 47',area: 'Sandviken',  date: '28. apr 2026',   duration: '3 t',   price: 163, status: 'fullfort' },
-  { id: '4', address: 'Damsgårdsveien 3',area: 'Laksevåg',   date: '20. apr 2026',   duration: '30m',   price: 54,  status: 'avbrutt' },
-  { id: '5', address: 'Strandgaten 12',  area: 'Møhlenpris', date: '12. apr 2026',   duration: '4 t',   price: 218, status: 'fullfort' },
-];
-
-const STATUS = {
-  fullfort: { label: 'Fullført', color: '#1F6B47', bg: 'rgba(63,166,107,0.12)', dot: '#3FA66B' },
-  avbrutt:  { label: 'Avbrutt',  color: '#92400E', bg: 'rgba(217,119,6,0.12)',  dot: '#D97706' },
-  kommende: { label: 'Kommende', color: '#1E40AF', bg: 'rgba(37,99,235,0.12)',  dot: '#2563EB' },
+const STATUS_MAP = {
+  completed: { label: 'Fullført', color: '#1F6B47', bg: 'rgba(63,166,107,0.12)',  dot: '#3FA66B' },
+  cancelled:  { label: 'Avbrutt',  color: '#92400E', bg: 'rgba(217,119,6,0.12)',   dot: '#D97706' },
+  confirmed:  { label: 'Kommende', color: '#1E40AF', bg: 'rgba(37,99,235,0.12)',   dot: '#2563EB' },
+  pending:    { label: 'Venter',   color: '#1E40AF', bg: 'rgba(37,99,235,0.12)',   dot: '#2563EB' },
 };
+
+function fmt(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function minsToStr(mins) {
+  if (!mins) return '—';
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h} t ${m}m` : `${h} t`;
+}
 
 export default function ReservasjonshistorikkScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [filter, setFilter] = useState('alle');
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = filter === 'alle' ? HISTORY : HISTORY.filter(h => h.status === filter);
-  const total = HISTORY.filter(h => h.status === 'fullfort').reduce((sum, h) => sum + h.price, 0);
+  useFocusEffect(useCallback(() => {
+    if (!user) { setLoading(false); return; }
+    setLoading(true);
+    supabase
+      .from('reservations')
+      .select('*, spots(id, address, price_per_hour, amenities)')
+      .eq('renter_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setHistory(data ?? []);
+        setLoading(false);
+      });
+  }, [user]));
+
+  const cancelBooking = (item) => {
+    Alert.alert(
+      'Avbestill reservasjon',
+      `Er du sikker på at du vil avbestille parkeringen på ${item.spots?.address ?? 'denne plassen'}?`,
+      [
+        { text: 'Nei, behold', style: 'cancel' },
+        {
+          text: 'Ja, avbestill', style: 'destructive',
+          onPress: async () => {
+            await supabase.from('reservations').update({ status: 'cancelled' }).eq('id', item.id);
+            setHistory(prev => prev.map(h => h.id === item.id ? { ...h, status: 'cancelled' } : h));
+            const { data: spot } = await supabase.from('spots').select('owner_id').eq('id', item.spot_id).maybeSingle();
+            if (spot?.owner_id) {
+              notifyUser(spot.owner_id, {
+                title: 'Reservasjon avbestilt',
+                body: `${item.spots?.address ?? 'Plass'} · ${new Date(item.starts_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })}`,
+              });
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const FILTERS = ['alle', 'completed', 'cancelled', 'confirmed'];
+  const FILTER_LABELS = { alle: 'Alle', completed: 'Fullført', cancelled: 'Avbrutt', confirmed: 'Kommende' };
+
+  const filtered = filter === 'alle' ? history : history.filter(h => h.status === filter);
+  const completedItems = history.filter(h => h.status === 'completed');
+  const totalPaid = completedItems.reduce((sum, h) => sum + (h.total ?? 0), 0);
+  const totalMins = completedItems.reduce((sum, h) => sum + (h.duration_mins ?? 0), 0);
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
-      <ScrollView contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
-
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
+      <ScrollView
+        contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={s.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
             <Icon name="arrow-left" size={20} color="#111416" />
@@ -38,68 +97,83 @@ export default function ReservasjonshistorikkScreen({ navigation }) {
           <View style={s.backBtn} />
         </View>
 
-        {/* Summary card */}
         <View style={s.summaryCard}>
           <LinearGradient colors={['#2F3437', '#111416']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFillObject, { borderRadius: 22 }]} />
           <View style={s.blob} />
           <View style={s.summaryInner}>
             <View style={s.summaryBlock}>
-              <Text style={s.summaryValue}>{HISTORY.filter(h => h.status === 'fullfort').length}</Text>
+              <Text style={s.summaryValue}>{completedItems.length}</Text>
               <Text style={s.summaryLabel}>Fullførte</Text>
             </View>
             <View style={s.summaryDivider} />
             <View style={s.summaryBlock}>
-              <Text style={s.summaryValue}>48 t</Text>
+              <Text style={s.summaryValue}>{minsToStr(totalMins)}</Text>
               <Text style={s.summaryLabel}>Totalt parkert</Text>
             </View>
             <View style={s.summaryDivider} />
             <View style={s.summaryBlock}>
-              <Text style={s.summaryValue}>{total} kr</Text>
+              <Text style={s.summaryValue}>{totalPaid} kr</Text>
               <Text style={s.summaryLabel}>Totalt betalt</Text>
             </View>
           </View>
         </View>
 
-        {/* Filters */}
         <View style={s.filterRow}>
-          {['alle', 'fullfort', 'avbrutt'].map(f => (
+          {FILTERS.map(f => (
             <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[s.filterBtn, filter === f && s.filterBtnActive]}>
-              <Text style={[s.filterText, filter === f && s.filterTextActive]}>
-                {f === 'alle' ? 'Alle' : f === 'fullfort' ? 'Fullført' : 'Avbrutt'}
-              </Text>
+              <Text style={[s.filterText, filter === f && s.filterTextActive]}>{FILTER_LABELS[f]}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* List */}
-        <View style={s.list}>
-          {filtered.map((item, i) => {
-            const st = STATUS[item.status];
-            return (
-              <View key={item.id}>
-                {i > 0 && <View style={s.divider} />}
-                <TouchableOpacity style={s.item} activeOpacity={0.75}>
-                  <View style={s.itemLeft}>
-                    <View style={s.itemIconWrap}>
-                      <Icon name="map-pin" size={14} color="#111416" strokeWidth={1.8} />
+        {loading ? (
+          <ActivityIndicator color="#4EA7B9" style={{ marginTop: 40 }} />
+        ) : filtered.length === 0 ? (
+          <View style={s.empty}>
+            <Text style={s.emptyText}>Ingen reservasjoner enda</Text>
+          </View>
+        ) : (
+          <View style={s.list}>
+            {filtered.map((item, i) => {
+              const st = STATUS_MAP[item.status] ?? STATUS_MAP.pending;
+              return (
+                <View key={item.id}>
+                  {i > 0 && <View style={s.divider} />}
+                  <TouchableOpacity
+                    style={s.item}
+                    activeOpacity={0.75}
+                    onPress={() => item.spots && navigation.navigate('Hjem', {
+                      screen: 'LiveSpot',
+                      params: { spot: { id: item.spots.id, address: item.spots.address, area: '', price: item.spots.price_per_hour, tags: item.spots.amenities ?? [], until: '', distanceKm: 99, distance: '', walk: '', featured: false, isLive: true } },
+                    })}
+                  >
+                    <View style={s.itemLeft}>
+                      <View style={s.itemIconWrap}>
+                        <Icon name="map-pin" size={14} color="#111416" strokeWidth={1.8} />
+                      </View>
+                      <View style={s.itemInfo}>
+                        <Text style={s.itemAddress}>{item.spots?.address ?? '—'}</Text>
+                        <Text style={s.itemMeta}>{fmt(item.starts_at)} · {minsToStr(item.duration_mins)}</Text>
+                        {['confirmed', 'pending'].includes(item.status) && new Date(item.starts_at) > new Date() && (
+                          <TouchableOpacity onPress={() => cancelBooking(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                            <Text style={s.cancelLink}>Avbestill</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
-                    <View style={s.itemInfo}>
-                      <Text style={s.itemAddress}>{item.address}</Text>
-                      <Text style={s.itemMeta}>{item.area} · {item.date} · {item.duration}</Text>
+                    <View style={s.itemRight}>
+                      <Text style={s.itemPrice}>{item.total ?? 0} kr</Text>
+                      <View style={[s.statusBadge, { backgroundColor: st.bg }]}>
+                        <View style={[s.statusDot, { backgroundColor: st.dot }]} />
+                        <Text style={[s.statusText, { color: st.color }]}>{st.label}</Text>
+                      </View>
                     </View>
-                  </View>
-                  <View style={s.itemRight}>
-                    <Text style={s.itemPrice}>{item.price} kr</Text>
-                    <View style={[s.statusBadge, { backgroundColor: st.bg }]}>
-                      <View style={[s.statusDot, { backgroundColor: st.dot }]} />
-                      <Text style={[s.statusText, { color: st.color }]}>{st.label}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </View>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -121,8 +195,10 @@ const s = StyleSheet.create({
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   filterBtn: { flex: 1, height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' },
   filterBtnActive: { backgroundColor: '#111416', borderColor: '#111416' },
-  filterText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#7B8589' },
+  filterText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: '#7B8589' },
   filterTextActive: { color: '#fff' },
+  empty: { alignItems: 'center', marginTop: 60 },
+  emptyText: { fontFamily: 'Inter_500Medium', fontSize: 14, color: '#7B8589' },
   list: { backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)', borderRadius: 22, overflow: 'hidden' },
   divider: { height: 1, backgroundColor: 'rgba(17,20,22,0.05)', marginLeft: 66 },
   item: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, gap: 12 },
@@ -136,4 +212,5 @@ const s = StyleSheet.create({
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   statusDot: { width: 5, height: 5, borderRadius: 3 },
   statusText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.2 },
+  cancelLink: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: '#EF4444', marginTop: 5 },
 });

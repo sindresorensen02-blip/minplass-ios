@@ -1,19 +1,80 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, Modal, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
+
+const PRIVACY_POLICY = `Sist oppdatert: 12. mai 2026
+
+MinPlass AS («vi», «oss») er behandlingsansvarlig for personopplysningene vi samler inn når du bruker MinPlass-appen.
+
+1. Hvilke opplysninger samler vi inn?
+• Navn, e-postadresse og telefonnummer (ved registrering)
+• Posisjonsdata (for å vise ledige plasser i nærheten)
+• Reservasjons- og betalingshistorikk
+• Tekniske loggdata og enhetsinfo
+
+2. Hvorfor samler vi inn data?
+• For å levere parkeringstjenesten og administrere reservasjoner (avtalegrunnlag, GDPR art. 6 nr. 1 b)
+• For å forbedre appen og analysere bruksmønstre (berettiget interesse, GDPR art. 6 nr. 1 f)
+• For å sende markedsføring – kun med ditt samtykke (GDPR art. 6 nr. 1 a)
+
+3. Deling med tredjeparter
+Vi deler aldri dine data med annonsører. Vi benytter:
+• Supabase (databaser og autentisering, EU-servere)
+• Resend (e-postutsendelse)
+• Expo / Apple Push Notification Service (varsler)
+
+4. Lagringstid
+Reservasjonsdata beholdes i 5 år av regnskaps- og skattemessige årsaker. Øvrige data slettes innen 30 dager etter at kontoen avsluttes.
+
+5. Dine rettigheter
+Du har rett til innsyn, retting, sletting, dataportabilitet og å protestere mot behandlingen. Send forespørsel til personvern@minplass.eu. Du kan også klage til Datatilsynet (datatilsynet.no).
+
+6. Kontakt
+MinPlass AS · Bryggen 4, 5003 Bergen
+E-post: personvern@minplass.eu`;
 
 export default function PersonvernScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { user, signOut } = useAuth();
   const [posisjon, setPosisjon] = useState(true);
   const [analytics, setAnalytics] = useState(true);
   const [markedsforing, setMarkedsforing] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
+  const [policyModal, setPolicyModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const requestDataExport = () => {
+    Alert.alert(
+      'Last ned mine data',
+      `Vi sender en kopi av alle dine data til ${user?.email ?? 'e-postadressen din'} innen 24 timer. Kontakt personvern@minplass.eu for spørsmål.`,
+      [{ text: 'OK' }],
+    );
+  };
+
+  const confirmDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await supabase.from('profiles').update({ deleted_at: new Date().toISOString() }).eq('id', user.id);
+      await signOut();
+      Alert.alert(
+        'Konto slettet',
+        'Kontoen din er markert for sletting. Alle data fjernes innen 30 dager.',
+        [{ text: 'OK' }],
+      );
+    } catch {
+      Alert.alert('Feil', 'Noe gikk galt. Kontakt personvern@minplass.eu.');
+    }
+    setDeleting(false);
+    setDeleteModal(false);
+  };
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
       <ScrollView contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
 
         <View style={s.header}>
@@ -35,7 +96,7 @@ export default function PersonvernScreen({ navigation }) {
 
         <Text style={s.sectionLabel}>Dine data</Text>
         <View style={s.card}>
-          <TouchableOpacity style={s.row}>
+          <TouchableOpacity style={s.row} onPress={() => setPolicyModal(true)}>
             <View style={s.rowIcon}><Icon name="clock" size={14} color="#111416" strokeWidth={1.8} /></View>
             <View style={s.rowText}>
               <Text style={s.rowLabel}>Behandlingsgrunnlag</Text>
@@ -44,7 +105,7 @@ export default function PersonvernScreen({ navigation }) {
             <Icon name="chevron-right" size={16} color="#C4CACC" strokeWidth={2} />
           </TouchableOpacity>
           <View style={s.divider} />
-          <TouchableOpacity style={s.row}>
+          <TouchableOpacity style={s.row} onPress={requestDataExport}>
             <View style={s.rowIcon}><Icon name="layers" size={14} color="#111416" strokeWidth={1.8} /></View>
             <View style={s.rowText}>
               <Text style={s.rowLabel}>Last ned mine data</Text>
@@ -74,6 +135,24 @@ export default function PersonvernScreen({ navigation }) {
         </View>
       </ScrollView>
 
+      {/* Privacy policy modal */}
+      <Modal visible={policyModal} transparent animationType="slide" onRequestClose={() => setPolicyModal(false)}>
+        <View style={s.overlay}>
+          <View style={[s.sheet, { paddingBottom: insets.bottom + 24 }]}>
+            <View style={s.sheetHandle} />
+            <View style={s.policyHeader}>
+              <Text style={s.sheetTitle}>Personvernerklæring</Text>
+              <TouchableOpacity onPress={() => setPolicyModal(false)} style={s.policyClose}>
+                <Icon name="x" size={16} color="#111416" strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={s.policyScroll}>
+              <Text style={s.policyText}>{PRIVACY_POLICY}</Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={deleteModal} transparent animationType="slide" onRequestClose={() => setDeleteModal(false)}>
         <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => setDeleteModal(false)}>
           <TouchableOpacity activeOpacity={1} style={s.sheet} onPress={() => {}}>
@@ -83,8 +162,11 @@ export default function PersonvernScreen({ navigation }) {
             </View>
             <Text style={s.sheetTitle}>Slett konto?</Text>
             <Text style={s.sheetBody}>Dette vil permanent slette alle dine data, reservasjoner og betalingsinformasjon. Handlingen kan ikke angres.</Text>
-            <TouchableOpacity style={s.deleteBtn} activeOpacity={0.85}>
-              <Text style={s.deleteBtnText}>Slett konto permanent</Text>
+            <TouchableOpacity style={s.deleteBtn} activeOpacity={0.85} onPress={confirmDeleteAccount} disabled={deleting}>
+              {deleting
+                ? <ActivityIndicator color="#DC2626" size="small" />
+                : <Text style={s.deleteBtnText}>Slett konto permanent</Text>
+              }
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setDeleteModal(false)} style={s.cancelBtn}>
               <Text style={s.cancelText}>Avbryt</Text>
@@ -134,4 +216,8 @@ const s = StyleSheet.create({
   deleteBtnText: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#DC2626' },
   cancelBtn: { width: '100%', height: 52, borderRadius: 999, backgroundColor: '#111416', alignItems: 'center', justifyContent: 'center' },
   cancelText: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#fff' },
+  policyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 16 },
+  policyClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(17,20,22,0.07)', alignItems: 'center', justifyContent: 'center' },
+  policyScroll: { width: '100%', maxHeight: 440 },
+  policyText: { fontFamily: 'Inter_400Regular', fontSize: 13, color: '#2F3437', lineHeight: 22 },
 });

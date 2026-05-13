@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Polygon } from 'react-native-svg';
 import Icon from '../components/Icon';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 const TAGS = ['Enkel å bruke', 'Rask', 'Pålitelig', 'God design', 'Bra utvalg', 'Trygg betaling'];
 
 const LABELS = ['', 'Veldig dårlig', 'Dårlig', 'Ok', 'Bra', 'Fantastisk!'];
 
-function Star({ filled, half, size = 40, onPress }) {
+function Star({ filled, size = 40, onPress }) {
   const c = filled ? '#F59E0B' : '#E5E7EB';
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.75}>
@@ -22,20 +24,31 @@ function Star({ filled, half, size = 40, onPress }) {
 
 export default function VurderAppenScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [rating, setRating] = useState(0);
-  const [hover, setHover] = useState(0);
   const [tags, setTags] = useState([]);
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const active = hover || rating;
   const toggleTag = (t) => setTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-  const submit = () => { if (rating === 0) return; setSubmitted(true); };
+  const submit = async () => {
+    if (rating === 0 || submitting) return;
+    setSubmitting(true);
+    await supabase.from('app_reviews').insert({
+      user_id: user?.id ?? null,
+      rating,
+      tags: tags.length > 0 ? tags : null,
+      comment: comment.trim() || null,
+    });
+    setSubmitting(false);
+    setSubmitted(true);
+  };
 
   if (submitted) {
     return (
       <View style={s.root}>
-        <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+        <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
         <View style={s.thankYou}>
           <View style={s.checkCircle}>
             <LinearGradient colors={['#10B981', '#2563EB']} style={[StyleSheet.absoluteFillObject, { borderRadius: 40 }]} />
@@ -53,7 +66,7 @@ export default function VurderAppenScreen({ navigation }) {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
       <ScrollView contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         <View style={s.header}>
@@ -70,11 +83,11 @@ export default function VurderAppenScreen({ navigation }) {
           <Text style={s.starsSub}>Din ærlige tilbakemelding betyr mye</Text>
           <View style={s.starsRow}>
             {[1,2,3,4,5].map(i => (
-              <Star key={i} filled={i <= active} size={44} onPress={() => setRating(i)} />
+              <Star key={i} filled={i <= rating} size={44} onPress={() => setRating(i)} />
             ))}
           </View>
-          {active > 0 && (
-            <Text style={s.ratingLabel}>{LABELS[active]}</Text>
+          {rating > 0 && (
+            <Text style={s.ratingLabel}>{LABELS[rating]}</Text>
           )}
         </View>
 
@@ -99,7 +112,7 @@ export default function VurderAppenScreen({ navigation }) {
           <TextInput
             value={comment}
             onChangeText={setComment}
-            placeholder={rating <= 2 ? 'Hva kan vi forbedre?' : 'Hva likte du best?'}
+            placeholder={rating > 0 && rating <= 2 ? 'Hva kan vi forbedre?' : 'Hva likte du best?'}
             placeholderTextColor="#C4CACC"
             multiline
             numberOfLines={4}
@@ -110,7 +123,7 @@ export default function VurderAppenScreen({ navigation }) {
 
         <TouchableOpacity onPress={submit} style={[s.submitBtn, rating === 0 && s.submitBtnDisabled]} activeOpacity={0.88}>
           <LinearGradient colors={rating > 0 ? ['#10B981', '#14B8A6', '#2563EB'] : ['#E5E7EB', '#E5E7EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[StyleSheet.absoluteFillObject, { borderRadius: 999 }]} />
-          <Text style={[s.submitBtnText, rating === 0 && s.submitBtnTextDisabled]}>Send vurdering</Text>
+          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={[s.submitBtnText, rating === 0 && s.submitBtnTextDisabled]}>Send vurdering</Text>}
         </TouchableOpacity>
       </ScrollView>
     </View>

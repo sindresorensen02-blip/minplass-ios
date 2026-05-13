@@ -38,7 +38,7 @@ export default function RedigerPlassScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}

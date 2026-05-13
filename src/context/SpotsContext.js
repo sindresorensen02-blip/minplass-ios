@@ -47,8 +47,9 @@ export function SpotsProvider({ children }) {
         address:        spot.address ?? spot.area,
         spot_type:      typeMap[spot.typeId] ?? 'utendors',
         price_per_hour: Number(spot.price),
-        active:         true,
-        amenities:      spot.amenities ?? [],
+        active:            true,
+        moderation_status: 'pending',
+        amenities:         spot.amenities ?? [],
         available_days: spot.days ?? ['Ma','Ti','On','To','Fr','Lø','Sø'],
         available_from: spot.fromTime ?? '08:00',
         available_to:   spot.toTime ?? '20:00',
@@ -100,12 +101,17 @@ export function useSpots() {
 }
 
 function normalise(row) {
-  const reservationCount = 0;
+  const mod = row.moderation_status ?? 'approved';
+  const sub = mod === 'pending'  ? 'Venter godkjenning'
+            : mod === 'rejected' ? 'Avvist av MinPlass'
+            : row.active         ? 'Aktiv'
+            :                      'Pause · gjenoppta';
   return {
-    id:     row.id,
-    title:  row.title,
-    sub:    row.active ? `Aktiv · ${reservationCount} reservasjoner` : 'Pause · gjenoppta',
-    price:  String(Math.round(row.price_per_hour)),
-    active: row.active,
+    id:                row.id,
+    title:             row.title,
+    sub,
+    price:             String(Math.round(row.price_per_hour)),
+    active:            row.active,
+    moderation_status: mod,
   };
 }

@@ -7,10 +7,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, skipLogin } = useAuth();
 
   const [mode, setMode]         = useState('login');   // 'login' | 'register'
   const [role, setRole]         = useState('sjåfør');  // 'sjåfør' | 'utleier'
@@ -19,25 +20,32 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
+  const [success, setSuccess]   = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
 
   const submit = async () => {
     setError('');
+    setSuccess('');
     if (!email || !password) { setError('Fyll inn e-post og passord.'); return; }
     if (mode === 'register' && !fullName) { setError('Fyll inn fullt navn.'); return; }
 
     setLoading(true);
-    const { error: err } = mode === 'login'
+    const { data, error: err } = mode === 'login'
       ? await signIn(email, password)
-      : await signUp(email, password, fullName);
+      : await signUp(email, password, fullName, role);
 
     setLoading(false);
-    if (err) setError(err.message);
+    if (err) { setError(err.message); return; }
+
+    if (mode === 'register' && data?.user && !data.session) {
+      setSuccess('Sjekk e-posten din og klikk bekreftelseslenken for å aktivere kontoen.');
+    }
   };
 
   return (
     <View style={styles.root}>
       {/* Background blobs */}
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
       <View style={[styles.blob, styles.blob1]} />
       <View style={[styles.blob, styles.blob2]} />
       <View style={[styles.blob, styles.blob3]} />
@@ -53,7 +61,9 @@ export default function AuthScreen() {
         >
           {/* Logo */}
           <View style={styles.logoRow}>
-            <Image source={require('../../assets/icon.png')} style={styles.logoImage} />
+            <TouchableOpacity onPress={skipLogin} activeOpacity={__DEV__ ? 0.6 : 1} disabled={!__DEV__}>
+              <Image source={require('../../assets/icon.png')} style={styles.logoImage} />
+            </TouchableOpacity>
             <Text style={styles.brandName}>MinPlass</Text>
           </View>
 
@@ -150,8 +160,9 @@ export default function AuthScreen() {
               />
             </View>
 
-            {/* Error */}
-            {!!error && <Text style={styles.errorText}>{error}</Text>}
+            {/* Error / Success */}
+            {!!error   && <Text style={styles.errorText}>{error}</Text>}
+            {!!success && <Text style={styles.successText}>{success}</Text>}
 
             {/* Submit */}
             <TouchableOpacity style={styles.submitBtn} activeOpacity={0.85} onPress={submit} disabled={loading}>
@@ -168,9 +179,28 @@ export default function AuthScreen() {
             </TouchableOpacity>
 
             {mode === 'login' && (
-              <TouchableOpacity style={styles.forgotBtn} activeOpacity={0.7}>
-                <Text style={styles.forgotText}>Glemt passord?</Text>
-              </TouchableOpacity>
+              <View style={styles.loginFooterRow}>
+                <TouchableOpacity style={styles.rememberRow} onPress={() => setRememberMe(v => !v)} activeOpacity={0.7}>
+                  <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                    {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.rememberText}>Husk meg</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.forgotBtn}
+                  activeOpacity={0.7}
+                  onPress={async () => {
+                    if (!email.trim()) { setError('Skriv inn e-postadressen din først.'); return; }
+                    setLoading(true);
+                    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim());
+                    setLoading(false);
+                    if (err) { setError(err.message); return; }
+                    setSuccess(`Tilbakestillingslenke sendt til ${email.trim()}`);
+                  }}
+                >
+                  <Text style={styles.forgotText}>Glemt passord?</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
 
@@ -226,11 +256,18 @@ const styles = StyleSheet.create({
   input: { height: 50, borderRadius: 14, backgroundColor: 'rgba(17,20,22,0.04)', borderWidth: 1, borderColor: 'rgba(17,20,22,0.1)', paddingHorizontal: 16, fontFamily: 'Inter_500Medium', fontSize: 15, color: '#111416' },
 
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: '#DC2626', marginBottom: 12, textAlign: 'center' },
+  successText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: '#1F6B47', marginBottom: 12, textAlign: 'center' },
 
   submitBtn: { height: 52, borderRadius: 999, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginTop: 4, marginBottom: 12, shadowColor: '#4EA7B9', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 6 },
   submitText: { fontFamily: 'Inter_700Bold', fontSize: 16, color: '#fff', letterSpacing: -0.16 },
 
-  forgotBtn: { alignItems: 'center', paddingVertical: 4 },
+  loginFooterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: '#C4CACC', alignItems: 'center', justifyContent: 'center' },
+  checkboxActive: { backgroundColor: '#4EA7B9', borderColor: '#4EA7B9' },
+  checkmark: { fontSize: 12, color: '#fff', fontWeight: 'bold' },
+  rememberText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: '#7B8589' },
+  forgotBtn: { paddingVertical: 4 },
   forgotText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: '#7B8589' },
 
   footer: { fontFamily: 'Inter_400Regular', fontSize: 11, color: '#7B8589', textAlign: 'center', marginTop: 24, lineHeight: 16 },

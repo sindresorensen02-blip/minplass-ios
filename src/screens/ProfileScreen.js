@@ -1,49 +1,83 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
-
-const STATS = [
-  { value: '12',  label: 'Reservasjoner' },
-  { value: '48',  label: 'Timer parkert' },
-  { value: '4,8', label: 'Din vurdering' },
-];
+import { supabase } from '../lib/supabase';
 
 const SECTIONS = [
   {
     title: 'Konto',
     rows: [
-      { icon: 'user',   label: 'Rediger profil',          hint: 'Navn, bilde, kontaktinfo', screen: 'RedigerProfil' },
-      { icon: 'wallet', label: 'Betalingsmetoder',         hint: 'Kort og Vipps',            screen: 'Betalingsmetoder' },
-      { icon: 'clock',  label: 'Reservasjonshistorikk',    hint: 'Tidligere og aktive',      screen: 'Reservasjonshistorikk' },
+      { icon: 'user',   label: 'Rediger profil',       hint: 'Navn, bilde, kontaktinfo', screen: 'RedigerProfil' },
+      { icon: 'wallet', label: 'Betalingsmetoder',      hint: 'Kort og Vipps',            screen: 'Betalingsmetoder' },
+      { icon: 'clock',  label: 'Reservasjonshistorikk', hint: 'Tidligere og aktive',      screen: 'Reservasjonshistorikk' },
     ],
   },
   {
     title: 'Preferanser',
     rows: [
-      { icon: 'bell',   label: 'Varsler',    hint: 'Push og e-post',    screen: 'Varsler' },
-      { icon: 'shield', label: 'Personvern', hint: 'Data og samtykke',  screen: 'Personvern' },
+      { icon: 'bell',   label: 'Varsler',    hint: 'Push og e-post',   screen: 'Varsler' },
+      { icon: 'shield', label: 'Personvern', hint: 'Data og samtykke', screen: 'Personvern' },
     ],
   },
   {
     title: 'Support',
     rows: [
-      { icon: 'layers', label: 'Hjelp & FAQ',  hint: 'Vanlige spørsmål',   screen: 'HjelpFAQ' },
-      { icon: 'bell',   label: 'Kontakt oss',  hint: 'Chat eller e-post',  screen: 'KontaktOss' },
-      { icon: 'star',   label: 'Vurder appen', hint: 'Del din mening',     screen: 'VurderAppen' },
+      { icon: 'layers', label: 'Hjelp & FAQ',  hint: 'Vanlige spørsmål',  screen: 'HjelpFAQ' },
+      { icon: 'bell',   label: 'Kontakt oss',  hint: 'Chat eller e-post', screen: 'KontaktOss' },
+      { icon: 'star',   label: 'Vurder appen', hint: 'Del din mening',    screen: 'VurderAppen' },
     ],
   },
 ];
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const [stats, setStats] = useState({ reservations: '—', hours: '—', rating: '—' });
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([
+      supabase
+        .from('reservations')
+        .select('duration_mins', { count: 'exact' })
+        .eq('renter_id', user.id)
+        .eq('status', 'completed'),
+      supabase
+        .from('reviews')
+        .select('rating')
+        .eq('reviewer_id', user.id),
+    ]).then(([resResult, reviewResult]) => {
+      const completed = resResult.data ?? [];
+      const totalMins = completed.reduce((sum, r) => sum + (r.duration_mins ?? 0), 0);
+      const reviews = reviewResult.data ?? [];
+      const avgRating = reviews.length
+        ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+        : '—';
+      setStats({
+        reservations: String(resResult.count ?? completed.length),
+        hours: `${Math.round(totalMins / 60)}`,
+        rating: avgRating,
+      });
+    });
+  }, [user]);
+
+  const initials = (profile?.full_name ?? user?.email ?? 'U')
+    .split(' ')
+    .map(w => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const memberYear = profile?.created_at
+    ? new Date(profile.created_at).getFullYear()
+    : '—';
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}
@@ -62,25 +96,29 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.heroSection}>
           <View style={styles.avatarOuter}>
             <LinearGradient colors={['#DCEBDF', '#9ECFE3']} style={[StyleSheet.absoluteFillObject, { borderRadius: 52 }]} />
-            <Text style={styles.avatarText}>JM</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
-          <Text style={styles.heroName}>Julia Metlicka</Text>
-          <Text style={styles.heroEmail}>julka.metlicka@gmail.com</Text>
+          <Text style={styles.heroName}>{profile?.full_name ?? '—'}</Text>
+          <Text style={styles.heroEmail}>{user?.email ?? ''}</Text>
           <View style={styles.memberBadge}>
             <View style={styles.memberDot} />
-            <Text style={styles.memberText}>Medlem siden 2024</Text>
+            <Text style={styles.memberText}>Medlem siden {memberYear}</Text>
           </View>
         </View>
 
         {/* Stats row */}
         <View style={styles.statsCard}>
-          {STATS.map((s, i) => (
+          {[
+            { value: stats.reservations, label: 'Reservasjoner' },
+            { value: stats.hours !== '0' ? stats.hours : '—', label: 'Timer parkert' },
+            { value: stats.rating, label: 'Din vurdering' },
+          ].map((s, i, arr) => (
             <React.Fragment key={s.label}>
               <View style={styles.statBlock}>
                 <Text style={styles.statValue}>{s.value}</Text>
                 <Text style={styles.statLabel}>{s.label}</Text>
               </View>
-              {i < STATS.length - 1 && <View style={styles.statDivider} />}
+              {i < arr.length - 1 && <View style={styles.statDivider} />}
             </React.Fragment>
           ))}
         </View>
@@ -109,7 +147,6 @@ export default function ProfileScreen({ navigation }) {
           </View>
         ))}
 
-        {/* Log out */}
         <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.85} onPress={signOut}>
           <Text style={styles.logoutText}>Logg ut</Text>
         </TouchableOpacity>

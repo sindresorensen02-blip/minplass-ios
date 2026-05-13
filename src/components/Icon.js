@@ -112,6 +112,12 @@ const ICONS = {
   'chevron-right': (c, sw) => (
     <Path d="m9 18 6-6-6-6" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round" />
   ),
+  'chevron-up': (c, sw) => (
+    <Path d="m18 15-6-6-6 6" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  'chevron-down': (c, sw) => (
+    <Path d="m6 9 6 6 6-6" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  ),
   layers: (c, sw) => (
     <>
       <Polygon points="12 2 2 7 12 12 22 7 12 2" stroke={c} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round"/>

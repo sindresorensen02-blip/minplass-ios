@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
+function formatBankAccount(raw) {
+  const d = raw.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 4) return d;
+  if (d.length <= 6) return `${d.slice(0,4)}.${d.slice(4)}`;
+  return `${d.slice(0,4)}.${d.slice(4,6)}.${d.slice(6)}`;
+}
 
 const CARDS = [
   { id: '1', type: 'Visa',       last4: '4242', expires: '08/26', default: true },
@@ -13,13 +22,37 @@ export default function BetalingsmetodeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [cards, setCards] = useState(CARDS);
   const [vipps, setVipps] = useState(true);
+  const { user } = useAuth();
+  const [bankAccount, setBankAccount]   = useState('');
+  const [editingBank, setEditingBank]   = useState(false);
+  const [bankInput, setBankInput]       = useState('');
+  const [savingBank, setSavingBank]     = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('bank_account').eq('id', user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data?.bank_account) setBankAccount(data.bank_account);
+      });
+  }, [user]);
+
+  const saveBank = async () => {
+    const digits = bankInput.replace(/\D/g, '');
+    if (digits.length !== 11) return;
+    setSavingBank(true);
+    const formatted = formatBankAccount(digits);
+    await supabase.from('profiles').update({ bank_account: formatted }).eq('id', user.id);
+    setBankAccount(formatted);
+    setEditingBank(false);
+    setSavingBank(false);
+  };
 
   const setDefault = (id) => setCards(prev => prev.map(c => ({ ...c, default: c.id === id })));
   const remove = (id) => setCards(prev => prev.filter(c => c.id !== id));
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
       <ScrollView contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
 
         <View style={s.header}>
@@ -29,6 +62,52 @@ export default function BetalingsmetodeScreen({ navigation }) {
           <Text style={s.headerTitle}>Betalingsmetoder</Text>
           <View style={s.backBtn} />
         </View>
+
+        {/* Payout bank account */}
+        <Text style={s.sectionLabel}>Utbetaling</Text>
+        <View style={s.cardList}>
+          <View style={s.cardRow}>
+            <View style={[s.cardIcon, { backgroundColor: 'rgba(16,185,129,0.1)' }]}>
+              <Icon name="trending-up" size={16} color="#10B981" strokeWidth={2} />
+            </View>
+            <View style={s.cardInfo}>
+              <Text style={s.cardNumber}>Bankkonto</Text>
+              {editingBank ? (
+                <TextInput
+                  value={bankInput}
+                  onChangeText={v => setBankInput(formatBankAccount(v))}
+                  placeholder="XXXX.XX.XXXXX"
+                  placeholderTextColor="#C4CACC"
+                  keyboardType="number-pad"
+                  style={s.bankInput}
+                  autoFocus
+                  maxLength={13}
+                />
+              ) : (
+                <Text style={s.cardExpiry}>
+                  {bankAccount ? bankAccount : 'Ikke lagt til ennå'}
+                </Text>
+              )}
+            </View>
+            {editingBank ? (
+              <TouchableOpacity onPress={saveBank} style={s.actionBtn} disabled={savingBank}>
+                {savingBank
+                  ? <ActivityIndicator size="small" color="#10B981" />
+                  : <Text style={[s.actionBtnText, { color: '#10B981' }]}>Lagre</Text>
+                }
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={() => { setBankInput(bankAccount); setEditingBank(true); }} style={s.actionBtn}>
+                <Text style={s.actionBtnText}>{bankAccount ? 'Endre' : 'Legg til'}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        <View style={s.secureNote}>
+          <Icon name="shield" size={13} color="#3FA66B" strokeWidth={1.8} />
+          <Text style={s.secureText}>Utbetalinger skjer til din registrerte bankkonto hver mandag.</Text>
+        </View>
+        <View style={{ height: 22 }} />
 
         <Text style={s.sectionLabel}>Lagrede kort</Text>
         <View style={s.cardList}>
@@ -79,7 +158,15 @@ export default function BetalingsmetodeScreen({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity style={s.addBtn} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={s.addBtn}
+          activeOpacity={0.85}
+          onPress={() => Alert.alert(
+            'Kortbetaling kommer snart',
+            'Vi jobber med å integrere kortbetaling. I mellomtiden kan du betale via Vipps.',
+            [{ text: 'OK' }],
+          )}
+        >
           <View style={s.addBtnIcon}><Icon name="wallet" size={16} color="#111416" strokeWidth={1.8} /></View>
           <Text style={s.addBtnText}>Legg til nytt kort</Text>
           <Icon name="chevron-right" size={16} color="#7B8589" strokeWidth={2} />
@@ -123,6 +210,7 @@ const s = StyleSheet.create({
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, backgroundColor: 'rgba(255,255,255,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)', borderRadius: 22, marginBottom: 16 },
   addBtnIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(17,20,22,0.06)', alignItems: 'center', justifyContent: 'center' },
   addBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#111416', flex: 1 },
+  bankInput: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#111416', padding: 0, marginTop: 2, letterSpacing: 1 },
   secureNote: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 },
   secureText: { fontFamily: 'Inter_500Medium', fontSize: 12, color: '#7B8589', flex: 1, lineHeight: 17 },
 });

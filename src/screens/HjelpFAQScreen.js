@@ -8,24 +8,44 @@ const FAQS = [
   {
     category: 'Reservasjon',
     items: [
-      { q: 'Hvordan reserverer jeg en parkeringsplass?', a: 'Finn en ledig plass på kartet eller hjemskjermen, trykk på den og velg varighet. Bekreft med "Reserver nå" og betalingen trekkes automatisk.' },
-      { q: 'Kan jeg avbestille en reservasjon?', a: 'Ja, du kan avbestille gratis opptil 15 minutter etter bestilling. Etter det belastes du for første time. Gå til Historikk og trykk på reservasjonen.' },
-      { q: 'Hva skjer om jeg kjører for sent?', a: 'Du kan forlenge parkering direkte i appen. Hvis du overskrider uten forlengelse, kan utleier rapportere det og du belastes for ekstra tid.' },
+      { q: 'Hvordan reserverer jeg en parkeringsplass?', a: 'Finn en ledig plass på kartet eller hjemskjermen, trykk på den og velg varighet. Bekreft med "Reserver nå" – du mottar en e-postbekreftelse umiddelbart.' },
+      { q: 'Kan jeg avbestille en reservasjon?', a: 'Ja, du kan avbestille gratis inntil 15 minutter etter bestilling. Etter det belastes du for første time. Gå til Historikk og trykk "Avbestill" på reservasjonen.' },
+      { q: 'Hva skjer om jeg trenger mer tid?', a: 'Du kan forlenge bookingen direkte fra plasskortet i appen – trykk "+ 30 min" eller "+ 1 time". Forlengelsen belastes automatisk.' },
+      { q: 'Kan jeg planlegge parkering frem i tid?', a: 'Ja, på plasskortet bytter du fra "Nå" til "Planlegg" og velger dato og klokkeslett. Plassen reserveres og du varsles samme dag.' },
     ],
   },
   {
     category: 'Betaling',
     items: [
-      { q: 'Hvilke betalingsmetoder støttes?', a: 'Vi støtter Visa, Mastercard og Vipps. Du kan legge til flere kort under Betalingsmetoder i profilen din.' },
-      { q: 'Når belastes jeg?', a: 'Betalingen gjennomføres når parkeringen avsluttes. Bookingavgiften på 18% er inkludert i totalen du ser.' },
-      { q: 'Kan jeg få refusjon?', a: 'Refusjon er mulig ved tekniske problemer eller feil fra utleiers side. Kontakt oss innen 24 timer etter parkering.' },
+      { q: 'Hvilke betalingsmetoder støttes?', a: 'Vi støtter Visa, Mastercard og Vipps. Du kan legge til og administrere kort under Betalingsmetoder i profilen din.' },
+      { q: 'Når belastes jeg?', a: 'Betalingen gjennomføres ved bestilling. Bookingavgiften på 18 % er inkludert i totalen du ser før du bekrefter.' },
+      { q: 'Kan jeg få refusjon?', a: 'Refusjon gis ved tekniske problemer eller feil fra utleiers side. Kontakt hjelp@minplass.eu innen 24 timer etter parkering med ordrenummeret ditt.' },
+      { q: 'Hva er bookingavgiften?', a: 'Bookingavgiften på 18 % dekker drift av plattformen, kundesupport og betalingssikkerhet. Den vises alltid tydelig i prisoppstillingen.' },
     ],
   },
   {
-    category: 'Utleiere',
+    category: 'Under parkeringen',
     items: [
-      { q: 'Hvordan kontakter jeg utleieren?', a: 'På reservasjonssiden finner du en "Send melding"-knapp. Utleiere svarer typisk innen få minutter.' },
-      { q: 'Hva gjør jeg om plassen er opptatt?', a: 'Ta et bilde og meld fra via appen. Vi kontakter utleier og finner en løsning. Du belastes ikke.' },
+      { q: 'Hvordan kontakter jeg utleieren?', a: 'Du finner kontaktinfo i reservasjonsbekreftelsen. Utleiere svarer typisk innen få minutter i åpningstid.' },
+      { q: 'Hva gjør jeg om plassen er opptatt?', a: 'Kontakt utleier direkte via appen. Hjelper ikke det, send oss bilde på hjelp@minplass.eu – vi kontakter utleier og du belastes ikke for ubenyttet tid.' },
+      { q: 'Appen viser at plassen er ledig, men den er opptatt?', a: 'Beklager! Trykk på "Meld problem" på reservasjonssiden. Vi refunderer ubenyttet tid og eskaler til utleier.' },
+    ],
+  },
+  {
+    category: 'Lei ut din plass',
+    items: [
+      { q: 'Hvordan legger jeg ut plassen min?', a: 'Gå til "Lei ut" i appen, fyll inn adresse, timepris og tilgjengelighet. Etter godkjenning er plassen synlig på kartet.' },
+      { q: 'Når får jeg utbetalt?', a: 'Inntektene overføres til din registrerte bankkonto hver mandag. Du ser opptjent beløp og neste utbetaling i Hjem-fanen under Host-dashbordet.' },
+      { q: 'Hva koster det å leie ut?', a: 'MinPlass tar 20 % av leiebeløpet. Resten (80 % av subtotalen) utbetales til deg. Bookingavgiften betales av leietakeren.' },
+      { q: 'Kan jeg nekte en reservasjon?', a: 'Du kan avvise innkommende reservasjoner i Innboks-fanen. Leietakeren varsles automatisk og belastes ikke.' },
+    ],
+  },
+  {
+    category: 'Konto og sikkerhet',
+    items: [
+      { q: 'Hvordan endrer jeg e-post eller passord?', a: 'Gå til Profil → Kontoinnstillinger. E-postendring krever bekreftelse til gammel adresse, passordendring sendes som en lenke.' },
+      { q: 'Dataene mine – hvem ser dem?', a: 'Vi selger aldri data til tredjepart. Se vår personvernerklæring under Profil → Personvern for full oversikt over behandlingen.' },
+      { q: 'Hvordan sletter jeg kontoen min?', a: 'Gå til Personvern → Slett konto. Alle data slettes permanent innen 30 dager. Aktive reservasjoner må avsluttes først.' },
     ],
   },
 ];
@@ -42,7 +62,7 @@ export default function HjelpFAQScreen({ navigation }) {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
       <ScrollView contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
 
         <View style={s.header}>

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  TextInput, StyleSheet, Switch,
+  TextInput, StyleSheet, Switch, ActivityIndicator, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 import Icon from '../components/Icon';
 import { useSpots } from '../context/SpotsContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 const TYPES = [
   { id: 'innkjorsel', label: 'Innkjørsel', icon: 'home' },
@@ -44,7 +47,9 @@ export default function LeiUtScreen({ navigation, route }) {
   const [price, setPrice] = useState(String(SUGGESTED));
   const [description, setDescription] = useState('');
   const [published, setPublished] = useState(false);
+  const [saving, setSaving]       = useState(false);
   const { addSpot } = useSpots();
+  const { user } = useAuth();
 
   const toggleDay = (d) => setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
   const toggleAmenity = (id) => setAmenities(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -57,25 +62,56 @@ export default function LeiUtScreen({ navigation, route }) {
     return true;
   };
 
-  const publish = () => {
-    const typeLabel = TYPES.find(t => t.id === type)?.label ?? type;
-    const parts = address.trim().split(' ');
-    const area = parts.length > 1 ? parts[parts.length - 1] : parts[0];
-    addSpot({ typeLabel, area, price });
-    setPublished(true);
+  const publish = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const results = await Location.geocodeAsync(`${address.trim()}, Bergen, Norge`);
+      const latitude  = results[0]?.latitude  ?? null;
+      const longitude = results[0]?.longitude ?? null;
+
+      const amenityLabels = amenities
+        .map(id => AMENITIES.find(a => a.id === id)?.label)
+        .filter(Boolean);
+
+      const { error } = await supabase.from('spots').insert({
+        owner_id:          user.id,
+        address:           address.trim(),
+        price_per_hour:    Number(price),
+        amenities:         amenityLabels,
+        active:            true,
+        moderation_status: 'pending',
+        available_from:    alwaysAvail ? '00:00' : fromTime,
+        available_to:      alwaysAvail ? '23:59' : toTime,
+        latitude,
+        longitude,
+        type:              TYPES.find(t => t.id === type)?.label ?? type,
+        description:       description.trim() || null,
+      });
+
+      if (error) throw error;
+
+      const typeLabel = TYPES.find(t => t.id === type)?.label ?? type;
+      const parts = address.trim().split(' ');
+      addSpot({ typeLabel, area: parts[parts.length - 1] ?? parts[0], price });
+      setPublished(true);
+    } catch {
+      setSaving(false);
+      Alert.alert('Noe gikk galt', 'Kunne ikke publisere plassen. Sjekk adressen og prøv igjen.');
+    }
   };
 
   if (published) {
     return (
       <View style={s.root}>
-        <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+        <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
         <View style={s.successWrap}>
           <View style={s.successIconWrap}>
             <LinearGradient colors={['#10B981', '#14B8A6', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFillObject, { borderRadius: 44 }]} />
             <Icon name="check" size={36} color="#fff" strokeWidth={2.5} />
           </View>
-          <Text style={s.successTitle}>Plassen er publisert!</Text>
-          <Text style={s.successSub}>{address} er nå synlig for leietakere i nærheten.</Text>
+          <Text style={s.successTitle}>Plassen er sendt inn!</Text>
+          <Text style={s.successSub}>{address} er under godkjenning. Vi varsler deg når den er live – vanligvis innen 24 timer.</Text>
           <View style={s.successCard}>
             <Row label="Type" value={TYPES.find(t => t.id === type)?.label ?? ''} />
             <View style={s.rowDivider} />
@@ -94,7 +130,7 @@ export default function LeiUtScreen({ navigation, route }) {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
       <ScrollView
         contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
@@ -271,10 +307,12 @@ export default function LeiUtScreen({ navigation, route }) {
               <Icon name="arrow-right" size={16} color={canNext() ? '#fff' : '#9CA3AF'} strokeWidth={2.5} />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={publish} style={s.nextBtn} activeOpacity={0.88}>
+            <TouchableOpacity onPress={publish} style={s.nextBtn} activeOpacity={0.88} disabled={saving}>
               <LinearGradient colors={['#10B981', '#14B8A6', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[StyleSheet.absoluteFillObject, { borderRadius: 999 }]} />
-              <Text style={s.nextBtnText}>Publiser plass</Text>
-              <Icon name="check" size={16} color="#fff" strokeWidth={2.5} />
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <><Text style={s.nextBtnText}>Publiser plass</Text><Icon name="check" size={16} color="#fff" strokeWidth={2.5} /></>
+              }
             </TouchableOpacity>
           )}
         </View>

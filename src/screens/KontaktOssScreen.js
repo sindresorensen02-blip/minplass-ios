@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 const CHANNELS = [
   { id: 'chat',  icon: 'bell',   label: 'Live chat',       hint: 'Typisk svar: 2 min',  available: true },
@@ -14,20 +16,30 @@ const TOPICS = ['Reservasjon', 'Betaling', 'Teknisk problem', 'Utleier', 'Annet'
 
 export default function KontaktOssScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [topic, setTopic] = useState('');
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState('chat');
 
-  const send = () => {
-    if (!message.trim()) return;
+  const send = async () => {
+    if (!message.trim() || sending) return;
+    setSending(true);
+    await supabase.from('support_messages').insert({
+      user_id: user?.id ?? null,
+      channel: selectedChannel,
+      topic: topic || null,
+      message: message.trim(),
+    });
+    setSending(false);
     setSent(true);
     setTimeout(() => { setSent(false); setMessage(''); setTopic(''); }, 3000);
   };
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#F7F8F6', '#EDEFEF', '#DDEAF0']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#F7F7F2', '#F7F7F2']} style={StyleSheet.absoluteFillObject} />
       <ScrollView contentContainerStyle={[s.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         <View style={s.header}>
@@ -93,7 +105,7 @@ export default function KontaktOssScreen({ navigation }) {
         ) : (
           <TouchableOpacity onPress={send} style={s.sendBtn} activeOpacity={0.88}>
             <LinearGradient colors={['#10B981', '#14B8A6', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[StyleSheet.absoluteFillObject, { borderRadius: 999 }]} />
-            <Text style={s.sendBtnText}>Send melding</Text>
+            {sending ? <ActivityIndicator color="#fff" /> : <Text style={s.sendBtnText}>Send melding</Text>}
           </TouchableOpacity>
         )}
 
